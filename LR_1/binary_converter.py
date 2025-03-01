@@ -1,12 +1,4 @@
-﻿#from binary_calculator import BinaryCalculator
-
-
-class BinaryConverter:
-    def __init__(self, number):
-        self.number = number
-
-
-class BinaryConverter:
+﻿class BinaryConverter:
     def __init__(self, number):
         self.number = number
 

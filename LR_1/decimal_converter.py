@@ -60,24 +60,6 @@
             return decimal
 
 
-    # @staticmethod
-    # def additional_code_to_decimal(binary_str):
-    #     length = len(binary_str)
-    #     decimal_value = 0
-
-    #     # Если число отрицательное (первый бит равен 1)
-    #     if binary_str[0] == '1':
-    #         # Вычитаем 2^N, где N — количество битов
-    #         decimal_value -= (2 ** length)
-    
-    #     # Преобразуем оставшиеся биты
-    #     for i in range(1, length):
-    #         if binary_str[i] == '1':
-    #             decimal_value += (2 ** (length - 1 - i))
-    
-    #     return decimal_value
-
-
     @staticmethod
     def direct_code_to_decimal_int(binary_str):
         # Определяем знак по старшему биту
