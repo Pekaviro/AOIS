@@ -196,62 +196,6 @@ class BinaryCalculator:
         return ''.join(reversed(result)).lstrip('0') or '0'
 
 
-    # @staticmethod
-    # def sum_ieee754(bin1: str, bin2: str) -> str:
-    #     """Складывает два положительных числа в формате IEEE-754 (32 бита)."""
-    #     # Проверка длины входных строк
-    #     if len(bin1) != 32 or len(bin2) != 32:
-    #         raise ValueError("Входные строки должны быть длиной 32 бита.")
-
-    #     # Разбор первого числа
-    #     sign1 = bin1[0]
-    #     exponent1 = bin1[1:9]  # Экспонента (смещенная)
-    #     mantissa1 = '1' + bin1[9:]     # Мантисса (с ведущей единицей)
-
-    #     # Разбор второго числа
-    #     sign2 = bin2[0]
-    #     exponent2 = bin2[1:9]  # Экспонента (смещенная)
-    #     mantissa2 = '1' + bin2[9:]     # Мантисса (с ведущей единицей)
-
-    #     # Проверка на положительные числа
-    #     if sign1 != '0' or sign2 != '0':
-    #         raise ValueError("Метод поддерживает только положительные числа.")
-
-    #     # Выравнивание экспонент
-    #     if exponent1 > exponent2:
-    #         # Сдвигаем мантиссу второго числа вправо
-    #         shift = DecimalConverter.reverse_code_to_decimal(exponent1) - DecimalConverter.reverse_code_to_decimal(exponent2)
-    #         mantissa2 = '0' * shift + mantissa2  # Добавляем нули слева
-    #         mantissa2 = mantissa2[:24]  # Обрезаем до 24 бит (1 ведущий бит + 23 мантиссы)
-    #         exponent2 = exponent1  # Обновляем экспоненту
-    #     elif exponent2 > exponent1:
-    #         # Сдвигаем мантиссу первого числа вправо
-    #         shift = DecimalConverter.reverse_code_to_decimal(exponent2) - DecimalConverter.reverse_code_to_decimal(exponent1)
-    #         mantissa1 = '0' * shift + mantissa1  # Добавляем нули слева
-    #         mantissa1 = mantissa1[:24]  # Обрезаем до 24 бит (1 ведущий бит + 23 мантиссы)
-    #         exponent1 = exponent2  # Обновляем экспоненту
-
-    #     if not all(bit in '01' for bit in mantissa1) or not all(bit in '01' for bit in mantissa2):
-    #         raise ValueError("Мантиссы должны содержать только символы '0' и '1'.")
-    #     # Сложение мантисс
-    #     mantissa_sum = BinaryCalculator.add_binaries(mantissa1, mantissa2)
-
-    #     # Нормализация результата
-    #     if len(mantissa_sum) > 24:  # Если произошел перенос
-    #         mantissa_sum = mantissa_sum[1:]  # Сдвигаем мантиссу вправо
-    #         exp1 = BinaryConverter(DecimalConverter.reverse_code_to_decimal(exponent1)+1)
-    #         exponent1 = exp1.reverse_code() # Увеличиваем экспоненту
-    #     elif len(mantissa_sum) < 24:  # Если мантисса слишком короткая
-    #         mantissa_sum += '0' * (24 - len(mantissa_sum))  # Дополняем нулями
-
-    #     # Убираем ведущую единицу (она подразумевается)
-    #     mantissa_sum = mantissa_sum[1:24]
-
-
-    #     # Объединяем все части
-    #     ieee754 = f'0{exponent1}{mantissa_sum}'
-    #     return ieee754
-
     @staticmethod
     def sum_ieee754(bin1: str, bin2: str) -> str:
         """Складывает два положительных числа в формате IEEE-754 (32 бита)."""
