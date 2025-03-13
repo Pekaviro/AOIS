@@ -1,4 +1,8 @@
-﻿class BinaryConverter:
+﻿PLUS_TO_EXPONENT = 127
+BITS_OF_MANTISSA = 23
+
+
+class BinaryConverter:
     def __init__(self, number):
         self.number = number
 
@@ -136,15 +140,15 @@
         mantissa = binary[first_one_index+1:dot_index] + binary[dot_index+1:]
     
         # Получаем показатель степени в двоичной форме
-        exponent += 127
+        exponent += PLUS_TO_EXPONENT
 
         exponent_bin = BinaryConverter.to_binary(exponent).rjust(8, '0')
     
         # Получаем мантиссу
-        mantissa = mantissa[:23]
+        mantissa = mantissa[:BITS_OF_MANTISSA]
     
         # Компилируем итоговое число
-        ieee754 = f"{sign_bit}{exponent_bin}{mantissa.ljust(23, '0')}"
+        ieee754 = f"{sign_bit}{exponent_bin}{mantissa.ljust(BITS_OF_MANTISSA, '0')}"
     
         return ieee754
 

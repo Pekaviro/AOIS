@@ -1,4 +1,7 @@
-﻿class DecimalConverter:
+﻿BITS_OF_IEEE754 = 32
+PLUS_TO_EXPONENT = 127
+
+class DecimalConverter:
     @staticmethod
     def reverse_code_to_decimal(binary_str):
         # Проверяем, является ли число отрицательным (первый бит равен 1)
@@ -116,7 +119,7 @@
         Преобразует 32-битное число в формате IEEE 754 в десятичное.
         """
         # Проверяем длину строки
-        if len(binary_str) != 32:
+        if len(binary_str) != BITS_OF_IEEE754:
             raise ValueError("Длина двоичной строки должна быть 32 бита")
 
         # Разделяем биты на знак, экспоненту и мантиссу
@@ -128,7 +131,7 @@
         sign = -1 if sign_bit == '1' else 1
 
         # Преобразуем экспоненту
-        exponent = int(exponent_bits, 2) - 127  # Вычитаем смещение (bias)
+        exponent = int(exponent_bits, 2) - PLUS_TO_EXPONENT # Вычитаем смещение (bias)
 
         # Преобразуем мантиссу
         mantissa = 1.0  # Начинаем с неявной ведущей единицы

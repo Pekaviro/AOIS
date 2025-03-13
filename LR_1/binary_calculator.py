@@ -1,6 +1,10 @@
 ﻿from binary_converter import BinaryConverter
 from decimal_converter import DecimalConverter
 
+BITS_OF_MANTISSA = 24
+BITS_OF_IEEE754 = 32
+BITS_OF_EXPONENT = 9
+
 
 class BinaryCalculator:
     @staticmethod
@@ -155,37 +159,37 @@ class BinaryCalculator:
 
 
     @staticmethod
-    def binary_compare(a, b):
+    def binary_compare(bin1, bin2):
         """
         Сравнивает два двоичных числа.
-        Возвращает 1, если a > b; 0, если a == b; -1, если a < b.
+        Возвращает 1, если bin1 > bin2; 0, если bin1 == bin2; -1, если bin1 < bin2.
         """
-        if len(a) > len(b):
-            b = b.zfill(len(a))
+        if len(bin1) > len(bin2):
+            bin2 = bin2.zfill(len(bin1))
         else:
-            a = a.zfill(len(b))
-        if a > b:
+            bin1 = bin1.zfill(len(bin2))
+        if bin1 > bin2:
             return 1
-        elif a == b:
+        elif bin1 == bin2:
             return 0
         else:
             return -1
 
 
     @staticmethod
-    def subtract_direct_code(a, b):
+    def subtract_direct_code(bin1, bin2):
         """
-        Вычитает два двоичных числа (a - b).
+        Вычитает два двоичных числа (bin1 - bin2).
         """
-        if len(a) > len(b):
-            b = b.zfill(len(a))
+        if len(bin1) > len(bin2):
+            bin2 = bin2.zfill(len(bin1))
         else:
-            a = a.zfill(len(b))
+            bin1 = bin1.zfill(len(bin2))
         result = []
         borrow = 0
-        for i in range(len(a) - 1, -1, -1):
-            bit_a = int(a[i])
-            bit_b = int(b[i])
+        for i in range(len(bin1) - 1, -1, -1):
+            bit_a = int(bin1[i])
+            bit_b = int(bin2[i])
             diff = bit_a - bit_b - borrow
             if diff < 0:
                 diff += 2
@@ -200,18 +204,18 @@ class BinaryCalculator:
     def sum_ieee754(bin1: str, bin2: str) -> str:
         """Складывает два положительных числа в формате IEEE-754 (32 бита)."""
         # Проверка длины входных строк
-        if len(bin1) != 32 or len(bin2) != 32:
+        if len(bin1) != BITS_OF_IEEE754 or len(bin2) != BITS_OF_IEEE754:
             raise ValueError("Входные строки должны быть длиной 32 бита.")
 
         # Разбор первого числа
         sign1 = bin1[0]
-        exponent1 = bin1[1:9]  # Экспонента (смещенная)
-        mantissa1 = '1' + bin1[9:]  # Мантисса (с ведущей единицей)
+        exponent1 = bin1[1:BITS_OF_EXPONENT]  # Экспонента (смещенная)
+        mantissa1 = '1' + bin1[BITS_OF_EXPONENT:]  # Мантисса (с ведущей единицей)
 
         # Разбор второго числа
         sign2 = bin2[0]
-        exponent2 = bin2[1:9]  # Экспонента (смещенная)
-        mantissa2 = '1' + bin2[9:]  # Мантисса (с ведущей единицей)
+        exponent2 = bin2[1:BITS_OF_EXPONENT]  # Экспонента (смещенная)
+        mantissa2 = '1' + bin2[BITS_OF_EXPONENT:]  # Мантисса (с ведущей единицей)
 
         # Проверка на положительные числа
         if sign1 != '0' or sign2 != '0':
@@ -225,26 +229,26 @@ class BinaryCalculator:
         if exp1 > exp2:
             shift = exp1 - exp2
             mantissa2 = '0' * shift + mantissa2  # Сдвигаем мантиссу второго числа вправо
-            mantissa2 = mantissa2[:24]  # Обрезаем до 24 бит
+            mantissa2 = mantissa2[:BITS_OF_MANTISSA]  # Обрезаем до 24 бит
             exp2 = exp1  # Обновляем экспоненту
         elif exp2 > exp1:
             shift = exp2 - exp1
             mantissa1 = '0' * shift + mantissa1  # Сдвигаем мантиссу первого числа вправо
-            mantissa1 = mantissa1[:24]  # Обрезаем до 24 бит
+            mantissa1 = mantissa1[:BITS_OF_MANTISSA]  # Обрезаем до 24 бит
             exp1 = exp2  # Обновляем экспоненту
 
         # Сложение мантисс
         mantissa_sum = BinaryCalculator.add_binaries(mantissa1, mantissa2)
 
         # Нормализация результата
-        if len(mantissa_sum) > 24:  # Если произошел перенос
+        if len(mantissa_sum) > BITS_OF_MANTISSA:  # Если произошел перенос
             mantissa_sum = mantissa_sum[:-1]  # Сдвигаем мантиссу вправо
             exp1 += 1  # Увеличиваем экспоненту
-        elif len(mantissa_sum) < 24:  # Если мантисса слишком короткая
-            mantissa_sum += '0' * (24 - len(mantissa_sum))  # Дополняем нулями справа
+        elif len(mantissa_sum) < BITS_OF_MANTISSA:  # Если мантисса слишком короткая
+            mantissa_sum += '0' * (BITS_OF_MANTISSA - len(mantissa_sum))  # Дополняем нулями справа
 
         # Убираем ведущую единицу (она подразумевается)
-        mantissa_sum = mantissa_sum[1:24]
+        mantissa_sum = mantissa_sum[1:BITS_OF_MANTISSA]
 
         # Преобразуем экспоненту обратно в строку из 8 бит
         exponent1 = f"{exp1:08b}"

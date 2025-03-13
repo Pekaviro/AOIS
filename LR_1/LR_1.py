@@ -3,6 +3,7 @@ from binary_converter import BinaryConverter
 from decimal_converter import DecimalConverter
 
 
+
 def print_choice_of_numeric_format():
     print("Выберите формат чисел:")
     print("1. Целые числа")
