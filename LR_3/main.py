@@ -1,79 +1,45 @@
 import re
 from logical_function import LogicalFunction
-
+from LR_2.logical_expression import LogicalExpression
 
 def main():
     print("Минимизация логических функций")
     print("Доступные переменные: a, b, c, d, e")
-    print("Логические операторы: ! (НЕ), | (ИЛИ), & (И)")
+    print("Логические операторы: ! (НЕ), | (ИЛИ), & (И), -> (импликация), ~ (эквивалентность)")
     
-    while True:  # Главный цикл программы
-        # Выбор типа формы
-        while True:
-            print("\nВыберите тип логической формы:")
-            print("1. СДНФ (Совершенная дизъюнктивная нормальная форма)")
-            print("2. СКНФ (Совершенная конъюнктивная нормальная форма)")
-            print("0. Выход из программы")
-            
-            form_choice = input("Ваш выбор: ")
-            
-            if form_choice == '0':
-                return  # Выход из программы
-            elif form_choice in ('1', '2'):
-                break
-            else:
-                print("Неверный выбор, попробуйте снова")
-        
-        # Ввод формулы
-        expression = input("\nВведите логическое выражение: ")
-        
-        # Извлекаем переменные из выражения
-        variables = sorted(set(re.findall(r'\b[a-e]\b', expression)))
-        if not variables:
-            print("Не найдено переменных в выражении")
-            continue  # Возвращаемся к выбору формы
-        
-        print(f"\nИспользуемые переменные: {', '.join(variables)}")
-        
-        try:
-            lf = LogicalFunction(variables, expression)
-        except ValueError as e:
-            print(f"Ошибка: {e}")
-            continue  # Возвращаемся к выбору формы
-        
-        # Выбор метода минимизации
-        while True:
-            print("\nВыберите метод минимизации:")
-            print("1. Расчетный метод")
-            print("2. Расчетно-табличный метод")
-            print("3. Табличный метод (карта Карно)")
-            print("0. Вернуться к выбору формы")
-            
-            method_choice = input("Ваш выбор: ")
-            
-            if method_choice == '0':
-                break  # Выходим из цикла методов, возвращаемся к выбору формы
-            elif form_choice == '1' and method_choice == '1':
-                print("\nМинимизация СДНФ расчетным методом:")
-                lf.minimize_sdnf_calculus()
-            elif form_choice == '1' and method_choice == '2':
-                print("\nМинимизация СДНФ расчетно-табличным методом:")
-                lf.minimize_sdnf_table()
-            elif form_choice == '1' and method_choice == '3':
-                print("\nМинимизация СДНФ табличным методом (карта Карно):")
-                lf.minimize_sdnf_kmap()
-            elif form_choice == '2' and method_choice == '1':
-                print("\nМинимизация СКНФ расчетным методом:")
-                lf.minimize_sknf_calculus()
-            elif form_choice == '2' and method_choice == '2':
-                print("\nМинимизация СКНФ расчетно-табличным методом:")
-                lf.minimize_sknf_table()
-            elif form_choice == '2' and method_choice == '3':
-                print("\nМинимизация СКНФ табличным методом (карта Карно):")
-                lf.minimize_sknf_kmap()
-            else:
-                print("Неверный выбор, попробуйте снова")
+    expression = input("\nВведите логическое выражение: ")
+    
+    logical_expr = LogicalExpression(expression)
+    
+    variables = sorted(logical_expr.variable_manager.get_variable_map().keys())
+    if not variables:
+        print("Не найдено переменных в выражении")
+        return
 
+    truth_table = logical_expr.generate_truth_table()
+    
+    
+    print("\nМинимизация СДНФ расчетным методом:")
+    lf_pdnf = LogicalFunction(variables, expression, truth_table)
+    lf_pdnf.minimize_sdnf_calculus()
+
+    print("\nМинимизация СКНФ расчетным методом:")
+    lf_pcnf = LogicalFunction(variables, expression, truth_table)
+    lf_pcnf.minimize_sknf_calculus()
+
+    print("\nМинимизация СДНФ расчетно-табличным методом:")
+    lf_pdnf.minimize_sdnf_table()
+
+    print("\nМинимизация СКНФ расчетно-табличным методом:")
+    lf_pcnf.minimize_sknf_table()
+
+    lf_pcnf.display_kmap()
+
+    print("\nМинимизация СДНФ табличным методом (карта Карно):")
+    print(f"Минимизированная функция: {lf_pdnf.minimize_with_kmap(is_dnf=True)}")
+
+    print("\nМинимизация СКНФ табличным методом (карта Карно):")
+    print(f"Минимизированная функция: {lf_pcnf.minimize_with_kmap(is_dnf=False)}")
 
 if __name__ == "__main__":
     main()

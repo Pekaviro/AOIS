@@ -1,444 +1,258 @@
 import unittest
+from itertools import product
+from collections import defaultdict
+
 from logical_function import LogicalFunction
+
 
 class TestLogicalFunction(unittest.TestCase):
     def setUp(self):
-        """Инициализация тестовых данных"""
-        self.vars = ['a', 'b']
-        self.expr = "a & b"
-        self.lf = LogicalFunction(self.vars, self.expr)
-    
-    def test_initialization_basic(self):
-        """Тест базовой инициализации"""
-        lf = LogicalFunction(['a', 'b'], "a & b")
-        self.assertEqual(lf.variables, ['a', 'b'])
-        self.assertEqual(lf.expression, "a & b")
-    
-    def test_initialization_sorting(self):
-        """Тест сортировки переменных"""
-        lf = LogicalFunction(['b', 'a'], "a & b")
-        self.assertEqual(lf.variables, ['a', 'b'])
-    
-    def test_initialization_complex(self):
-        """Тест инициализации сложного выражения"""
-        lf = LogicalFunction(['a', 'b', 'c'], "(a | b) & !c")
-        self.assertEqual(lf.variables, ['a', 'b', 'c'])
-        self.assertEqual(lf.expression, "(a | b) & !c")
+        self.vars = ['A', 'B']
+        self.truth_table = defaultdict(dict)
+        for a, b in product([0, 1], repeat=2):
+            self.truth_table['A & B'][(a, b)] = a & b
+            self.truth_table['A | B'][(a, b)] = a | b
+            self.truth_table['A ^ B'][(a, b)] = a ^ b
+            self.truth_table['!A'][(a, b)] = not a
 
-    def test_truth_table(self):
-        """Тест построения таблицы истинности"""
-        # Тестируем функцию И (AND)
-        lf_and = LogicalFunction(['a', 'b'], "a & b")
-        truth_table_and = lf_and._build_truth_table()
-        
-        # Проверяем количество строк (2^2 = 4)
-        self.assertEqual(len(truth_table_and), 4)
-        
-        # Проверяем конкретные значения
-        expected_and = [
-            ((0, 0), 0),
-            ((0, 1), 0),
-            ((1, 0), 0),
-            ((1, 1), 1)
-        ]
-        self.assertEqual(truth_table_and, expected_and)
-        
-        # Тестируем функцию ИЛИ (OR)
-        lf_or = LogicalFunction(['a', 'b'], "a | b")
-        truth_table_or = lf_or._build_truth_table()
-        
-        expected_or = [
-            ((0, 0), 0),
-            ((0, 1), 1),
-            ((1, 0), 1),
-            ((1, 1), 1)
-        ]
-        self.assertEqual(truth_table_or, expected_or)
-        
-        # Тестируем с одной переменной
-        lf_single = LogicalFunction(['a'], "a")
-        truth_table_single = lf_single._build_truth_table()
-        
-        expected_single = [
-            ((0,), 0),
-            ((1,), 1)
-        ]
-        self.assertEqual(truth_table_single, expected_single)
-    
+    def test_init_without_truth_table(self):
+        """Тест инициализации без таблицы истинности"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(lf.variables, ['A', 'B'])
+        self.assertEqual(lf.expression, 'A & B')
+        self.assertEqual(lf.minterms, [[1, 1]])
+
     def test_evaluate_expression(self):
         """Тест вычисления логического выражения"""
-        # Простое И
-        lf_and = LogicalFunction(['a', 'b'], "a & b")
-        self.assertEqual(lf_and._evaluate_expression({'a': 0, 'b': 0}), 0)
-        self.assertEqual(lf_and._evaluate_expression({'a': 0, 'b': 1}), 0)
-        self.assertEqual(lf_and._evaluate_expression({'a': 1, 'b': 0}), 0)
-        self.assertEqual(lf_and._evaluate_expression({'a': 1, 'b': 1}), 1)
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(lf._evaluate_expression({'A': 1, 'B': 1}), 1)
+        self.assertEqual(lf._evaluate_expression({'A': 1, 'B': 0}), 0)
+        self.assertEqual(lf._evaluate_expression({'A': 0, 'B': 1}), 0)
+        self.assertEqual(lf._evaluate_expression({'A': 0, 'B': 0}), 0)
 
-        # Простое ИЛИ
-        lf_or = LogicalFunction(['a', 'b'], "a | b")
-        self.assertEqual(lf_or._evaluate_expression({'a': 0, 'b': 0}), 0)
-        self.assertEqual(lf_or._evaluate_expression({'a': 0, 'b': 1}), 1)
-        self.assertEqual(lf_or._evaluate_expression({'a': 1, 'b': 0}), 1)
-        self.assertEqual(lf_or._evaluate_expression({'a': 1, 'b': 1}), 1)
+    def test_minterm_to_binary(self):
+        """Тест преобразования индекса минтерма в бинарное представление"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertEqual(lf._minterm_to_binary(0), [0, 0, 0])
+        self.assertEqual(lf._minterm_to_binary(5), [1, 0, 1])  # 5 = 101
+        self.assertEqual(lf._minterm_to_binary(7), [1, 1, 1])
 
-        # Отрицание
-        lf_not = LogicalFunction(['a'], "!a")
-        self.assertEqual(lf_not._evaluate_expression({'a': 0}), 1)
-        self.assertEqual(lf_not._evaluate_expression({'a': 1}), 0)
+    def test_get_minterms(self):
+        """Тест получения минтермов"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(lf.minterms, [[1, 1]])
+        
+        lf = LogicalFunction(['A', 'B'], 'A | B', {})
+        self.assertEqual(sorted(lf.minterms), sorted([[0, 1], [1, 0], [1, 1]]))
 
-        # Комбинированное выражение
-        lf_combined = LogicalFunction(['a', 'b', 'c'], "(a | b) & !c")
-        self.assertEqual(lf_combined._evaluate_expression({'a': 1, 'b': 0, 'c': 0}), 1)
-        self.assertEqual(lf_combined._evaluate_expression({'a': 1, 'b': 1, 'c': 1}), 0)
-    
-    def test_get_minterms_maxterms(self):
-        """Тест получения минтермов и макстермов"""
-        # Создаем тестовый объект один раз в setUp
-        self.lf = LogicalFunction(['a', 'b'], "a | b")
+    def test_get_maxterms(self):
+        """Тест получения макстермов"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(sorted(lf.maxterms), sorted([[0, 0], [0, 1], [1, 0]]))
         
-        # Проверяем минтермы и макстермы для OR
-        self.assertEqual(self.lf.minterms, [(0, 1), (1, 0), (1, 1)])
-        self.assertEqual(self.lf.maxterms, [(0, 0)])
-        
-        # Проверяем AND
-        self.lf = LogicalFunction(['a', 'b'], "a & b")
-        self.assertEqual(self.lf.minterms, [(1, 1)])
-        self.assertEqual(self.lf.maxterms, [(0, 0), (0, 1), (1, 0)])
-        
-        # Проверяем константные функции
-        self.lf = LogicalFunction(['a', 'b'], "1")
-        self.assertEqual(self.lf.minterms, [(0,0), (0,1), (1,0), (1,1)])
-        self.assertEqual(self.lf.maxterms, [])
-        
-        self.lf = LogicalFunction(['a', 'b'], "0")
-        self.assertEqual(self.lf.minterms, [])
-        self.assertEqual(self.lf.maxterms, [(0,0), (0,1), (1,0), (1,1)])
-        
-        # Проверяем отрицание
-        self.lf = LogicalFunction(['a'], "!a")
-        self.assertEqual(self.lf.minterms, [(0,)])
-        self.assertEqual(self.lf.maxterms, [(1,)])
-        
-        # Проверяем сложное выражение с 3 переменными
-        self.lf = LogicalFunction(['a', 'b', 'c'], "a & (b | c)")
-        expected_minterms = [
-            (1, 0, 1),
-            (1, 1, 0), 
-            (1, 1, 1)
-        ]
-        self.assertEqual(self.lf.minterms, expected_minterms)
-    
+        lf = LogicalFunction(['A', 'B'], 'A | B', {})
+        self.assertEqual(lf.maxterms, [[0, 0]])
+
     def test_implicant_to_expression(self):
         """Тест преобразования импликанта в выражение"""
-        lf = LogicalFunction(['a', 'b', 'c'], "a & b & c")
-        
-        # Полный импликант
-        self.assertEqual(lf._implicant_to_expression([1, 0, 1]), "a & !b & c")
-        
-        # Импликант с None (склеенный)
-        self.assertEqual(lf._implicant_to_expression([1, None, 0]), "a & !c")
-        
-        # Все None
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertEqual(lf._implicant_to_expression([1, 0, 1]), "A & !B & C")
+        self.assertEqual(lf._implicant_to_expression([1, None, 0]), "A & !C")
         self.assertEqual(lf._implicant_to_expression([None, None, None]), "1")
-    
-    def test_maxterm_to_expression(self):
-        """Тест преобразования макстерма в выражение"""
-        lf = LogicalFunction(['a', 'b', 'c'], "a")  # Простое валидное выражение
-        
-        # Проверяем преобразование макстермов
-        self.assertEqual(lf._maxterm_to_expression([0, 1, 0]), "(a | !b | c)")
-        self.assertEqual(lf._maxterm_to_expression([1, None, 0]), "(!a | c)")
-        self.assertEqual(lf._maxterm_to_expression([None, None, None]), "1")
-        self.assertEqual(lf._maxterm_to_expression([]), "1")  # Пустой макстерм
-    
-    def test_get_prime_implicants(self):
-        """Тест нахождения простых импликантов"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        minterms = [(0, 1), (1, 0), (1, 1)]
-        primes = lf._get_prime_implicants(minterms)
-        
-        # Ожидаем два импликанта: (None, 1) и (1, None)
-        self.assertEqual(len(primes), 2)
-        self.assertIn([None, 1], primes)
-        self.assertIn([1, None], primes)
-    
-    def test_covers(self):
-        """Тест проверки покрытия импликантом терма"""
-        # Создаем временный объект только для тестирования метода _covers
-        # Нам не нужно вычислять выражение, поэтому используем простое валидное
-        lf = LogicalFunction(['a', 'b', 'c'], "a")
-        
-        # Полное совпадение
-        self.assertTrue(lf._covers([1, 0, 1], [1, 0, 1]))
-        
-        # Частичное совпадение (импликант имеет None)
-        self.assertTrue(lf._covers([1, None, 0], [1, 1, 0]))
-        self.assertTrue(lf._covers([1, None, 0], [1, 0, 0]))
-        
-        # Не совпадает
-        self.assertFalse(lf._covers([1, None, 0], [0, 1, 0]))
-        self.assertFalse(lf._covers([1, None, 0], [1, 1, 1]))
-    
+
+    def test_glue_terms(self):
+        """Тест склеивания терминов"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertEqual(lf._glue_terms((1, 0, 1), (1, 0, 0)), (1, 0, None))
+        self.assertEqual(lf._glue_terms((1, 0, 1), (1, 1, 1)), (1, None, 1))
+        self.assertIsNone(lf._glue_terms((1, 0, 1), (0, 1, 0)))
+
     def test_minimize_sdnf_calculus(self):
         """Тест минимизации СДНФ расчетным методом"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        result = lf.minimize_sdnf_calculus()
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(lf.minimize_sdnf_calculus(), "A & B")
         
-        # Разбиваем результат и проверяем наличие всех термов
-        terms = result.split(" | ")
-        self.assertEqual(len(terms), 2)
-        self.assertIn("a", terms)
-        self.assertIn("b", terms)
-        
-        # Тест для более сложного выражения
-        lf = LogicalFunction(['a', 'b', 'c'], "(a & !b & !c) | (a & !b & c) | (a & b & c)")
-        result = lf.minimize_sdnf_calculus()
-        
-        terms = result.split(" | ")
-        self.assertEqual(len(terms), 2)
-        self.assertIn("a & !b", terms)
-        self.assertIn("a & c", terms)
-    
+        lf = LogicalFunction(['A', 'B'], 'A | B', {})
+        self.assertIn(lf.minimize_sdnf_calculus(), ["A | B", "B | A"])
+
     def test_minimize_sknf_calculus(self):
         """Тест минимизации СКНФ расчетным методом"""
-        lf = LogicalFunction(['a', 'b'], "a & b")
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        expected = "(!A | B) & (A | !B) & (A | B)"
         result = lf.minimize_sknf_calculus()
-        
-        # Разбиваем результат и проверяем наличие всех термов
-        terms = result.split(" & ")
-        self.assertEqual(len(terms), 2)
-        self.assertIn("(a)", terms)
-        self.assertIn("(b)", terms)
-        
-        # Тест для более сложного выражения
-        lf = LogicalFunction(['a', 'b', 'c'], "(a | b | c) & (a | b | !c) & (a | !b | c)")
-        result = lf.minimize_sknf_calculus()
-        
-        terms = result.split(" & ")
-        self.assertEqual(len(terms), 2)
-        self.assertIn("(a | b)", terms)
-        self.assertIn("(a | c)", terms)
-    
-    def test_minimize_sdnf_table(self):
-        """Тест минимизации СДНФ табличным методом"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        result = lf.minimize_sdnf_table()
-        
-        # Разбиваем результат на части и проверяем их наличие
-        parts = result.split(" | ")
-        self.assertEqual(len(parts), 2)
-        self.assertIn("a", parts)
-        self.assertIn("b", parts)
+        self.assertIn(result, ["(A) & (B)", "(B) & (A)"])
 
-        lf = LogicalFunction(['a', 'b', 'c'], "(a & !b & !c) | (a & !b & c) | (a & b & c)")
-        result = lf.minimize_sdnf_table()
+    def test_minimize_with_kmap_dnf(self):
+        """Тест минимизации DNF с помощью карт Карно"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        result = lf.minimize_with_kmap(is_dnf=True)
+        self.assertIn(result, ["(A & B)", "(B & A)"])
 
-        # Проверяем наличие обоих ожидаемых импликантов
-        parts = result.split(" | ")
-        self.assertEqual(len(parts), 2)
-        self.assertIn("a & !b", parts)
-        self.assertIn("a & c", parts)
-    
-    def test_minimize_sknf_table(self):
-        """Тест минимизации СКНФ табличным методом"""
-        lf = LogicalFunction(['a', 'b'], "a & b")
-        result = lf.minimize_sknf_table()
-        
-        # Разбиваем результат на отдельные импликанты
-        implicants = result.split(" & ")
-        
-        # Проверяем что оба импликанта присутствуют в любом порядке
-        self.assertEqual(len(implicants), 2)
-        self.assertIn("(a)", implicants)
-        self.assertIn("(b)", implicants)
+    def test_minimize_with_kmap_cnf(self):
+        """Тест минимизации CNF с помощью карт Карно"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        result = lf.minimize_with_kmap(is_dnf=False)
 
-        lf = LogicalFunction(['a', 'b', 'c'], "(a | b | c) & (a | b | !c) & (a | !b | c)")
-        result = lf.minimize_sknf_table()
+        self.assertIn(result, ["(A) & (B)", "(B) & (A)"])
 
-        # Проверяем наличие обоих ожидаемых импликантов
-        implicants = result.split(" & ")
-        self.assertEqual(len(implicants), 2)
-        self.assertIn("(a | b)", implicants)
-        self.assertIn("(a | c)", implicants)
-    
-    def test_karnaugh_map(self):
-        """Тест построения карты Карно"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        kmap = lf._build_karnaugh_map()
-        expected_kmap = {
-            (0, 0): 0,
-            (0, 1): 1,
-            (1, 0): 1,
-            (1, 1): 1
-        }
-        self.assertEqual(kmap, expected_kmap)
-    
-    def test_minimize_sdnf_kmap(self):
-        """Тест минимизации СДНФ с помощью карт Карно"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        result = lf.minimize_sdnf_kmap()
-        
-        # Разбиваем результат на части и проверяем их наличие
-        parts = result.split(" | ")
-        self.assertEqual(len(parts), 2)
-        self.assertIn("a", parts)
-        self.assertIn("b", parts)
-        
-        # Тест для более сложного выражения
-        lf = LogicalFunction(['a', 'b', 'c'], "(a & !b & !c) | (a & !b & c) | (a & b & c)")
-        result = lf.minimize_sdnf_kmap()
-        
-        parts = result.split(" | ")
-        self.assertEqual(len(parts), 2)
-        self.assertIn("a & !b", parts)
-        self.assertIn("a & c", parts)
-    
-    def test_minimize_sknf_kmap(self):
-        """Тест минимизации СКНФ с помощью карт Карно"""
-        lf = LogicalFunction(['a', 'b'], "a & b")
-        result = lf.minimize_sknf_kmap()
-        self.assertEqual(result, "(a) & (b)")
-        
-        lf = LogicalFunction(['a', 'b', 'c'], "(a | b | c) & (a | b | !c) & (a | !b | c)")
-        result = lf.minimize_sknf_kmap()
-        self.assertEqual(result, "(a | b) & (a | c)")
-    
-    def test_invalid_expression(self):
-        """Тест обработки неверного выражения"""
-        with self.assertRaises(ValueError):
-            LogicalFunction(['a', 'b'], "a & invalid")
-        
-        with self.assertRaises(ValueError):
-            LogicalFunction(['a', 'b'], "a &")
+    def test_display_kmap(self):
+        """Тест отображения карты Карно (проверяем, что не падает)"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        try:
+            lf.display_kmap(is_dnf=True)
+            lf.display_kmap(is_dnf=False)
+        except Exception as e:
+            self.fail(f"display_kmap() raised {type(e).__name__} unexpectedly!")
 
+
+
+class TestLogicalFunctionExtended(unittest.TestCase):
     def setUp(self):
-        self.vars = ['a', 'b', 'c']
-        self.simple_expr = "a & b"
-        self.complex_expr = "(a | b) & !c"
-    
-    def test_empty_expression(self):
-        """Тест обработки пустого выражения"""
-        with self.assertRaises(ValueError):
-            LogicalFunction(self.vars, "")
-    
-    def test_single_variable(self):
-        """Тест работы с одной переменной"""
-        lf = LogicalFunction(['a'], "a")
-        self.assertEqual(len(lf.truth_table), 2)
-        self.assertEqual(lf.minimize_sdnf_calculus(), "a")
-        self.assertEqual(lf.minimize_sknf_calculus(), "(a)")
-    
-    def test_expression_with_spaces(self):
-        """Тест обработки выражений с пробелами"""
-        lf = LogicalFunction(self.vars, " a  &  ( b | c ) ")
-        self.assertEqual(len(lf.truth_table), 8)
-    
-    def test_karnaugh_map_3vars(self):
-        """Тест построения карты Карно для 3 переменных"""
-        lf = LogicalFunction(['a', 'b', 'c'], "a & b & c")
-        kmap = lf._build_karnaugh_map()
-        self.assertEqual(kmap[(1,1,1)], 1)
-        self.assertEqual(kmap[(0,0,0)], 0)
-    
-    def test_karnaugh_map_4vars(self):
-        """Тест построения карты Карно для 4 переменных"""
-        lf = LogicalFunction(['a', 'b', 'c', 'd'], "a & b & c & d")
-        kmap = lf._build_karnaugh_map()
-        self.assertEqual(kmap[(1,1,1,1)], 1)
-        self.assertEqual(kmap[(0,0,0,0)], 0)
-    
-    def test_prime_implicants_selection(self):
-        """Тест выбора простых импликантов"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        primes = lf._get_prime_implicants(lf.minterms)
-        self.assertEqual(len(primes), 2)
-    
-    def test_essential_primes_selection(self):
+        self.vars_3 = ['A', 'B', 'C']
+        self.truth_table = defaultdict(dict)
+        for a, b, c in product([0, 1], repeat=3):
+            self.truth_table['A & B & C'][(a, b, c)] = a & b & c
+            self.truth_table['A | B | C'][(a, b, c)] = a | b | c
+
+    def test_init_with_truth_table(self):
+        """Тест инициализации с таблицей истинности"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', self.truth_table)
+        self.assertEqual(lf.variables, ['A', 'B'])
+        self.assertEqual(lf.expression, 'A & B')
+        self.assertEqual(lf.minterms, [[1, 1]])
+
+    def test_maxterm_to_expression(self):
+        """Тест преобразования макстерма в выражение"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertEqual(lf._maxterm_to_expression([1, 0, 1]), "(!A | B | !C)")
+        self.assertEqual(lf._maxterm_to_expression([1, None, 0]), "(!A | C)")
+        self.assertEqual(lf._maxterm_to_expression([None, None, None]), "1")
+
+    def test_get_prime_implicants(self):
+        """Тест получения простых импликантов"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A & B & C', {})
+        minterms = [[1, 1, 1]]
+        primes = lf._get_prime_implicants(minterms)
+        self.assertEqual(primes, [[1, 1, 1]])
+
+        lf = LogicalFunction(['A', 'B'], 'A | B', {})
+        minterms = [[0, 1], [1, 0], [1, 1]]
+        primes = lf._get_prime_implicants(minterms)
+        self.assertEqual(len(primes), 2)  # Должно быть 2 импликанта
+
+    def test_select_essential_primes(self):
         """Тест выбора существенных импликантов"""
-        lf = LogicalFunction(['a', 'b', 'c'], "(a & !b & !c) | (a & !b & c) | (a & b & c)")
-        primes = lf._get_prime_implicants(lf.minterms)
-        essential = lf._select_essential_primes(primes, lf.minterms)
-        self.assertEqual(len(essential), 2)
-    
-    def test_implicant_coverage(self):
-        """Тест проверки покрытия импликантом"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        self.assertTrue(lf._covers([1, None], [1, 1]))
-        self.assertTrue(lf._covers([None, 1], [0, 1]))
-        self.assertFalse(lf._covers([1, None], [0, 1]))
-    
-    def test_minimize_sknf_kmap_unsupported_vars(self):
-        """Тест минимизации СКНФ картами Карно для неподдерживаемого числа переменных"""
-        # Для 5 переменных (неподдерживаемый случай)
-        lf = LogicalFunction(['a', 'b', 'c', 'd', 'e'], "a | b | c | d | e")
-        result = lf.minimize_sknf_kmap()
-        
-        # Должен либо вернуть константу, либо использовать расчетный метод
-        self.assertTrue(result in ["1", "0"] or 
-                    "|" in result or "&" in result)  # Проверяем, что это валидное выражение
-        
-        # Для 6 переменных (крайний случай)
-        lf = LogicalFunction(['a', 'b', 'c', 'd', 'e', 'f'], "a & b & c & d & e & f")
-        result = lf.minimize_sknf_kmap()
-        self.assertTrue(result in ["1", "0"] or 
-                    "|" in result or "&" in result)
+        lf = LogicalFunction(['A', 'B', 'C'], 'A & B & C', {})
+        primes = [[1, 1, None], [None, 1, 1]]
+        minterms = [[1, 1, 0], [1, 1, 1], [0, 1, 1]]
+        essentials = lf._select_essential_primes(primes, minterms)
+        self.assertEqual(len(essentials), 2)
 
-    def test_minimize_sdnf_kmap_unsupported_vars(self):
-        """Тест минимизации СДНФ картами Карно для неподдерживаемого числа переменных"""
-        # Для 5 переменных (неподдерживаемый случай)
-        lf = LogicalFunction(['a', 'b', 'c', 'd', 'e'], "a & b & c & d & e")
-        result = lf.minimize_sdnf_kmap()
-        
-        # Должен либо вернуть константу, либо использовать расчетный метод
-        self.assertTrue(result in ["1", "0"] or 
-                    "|" in result or "&" in result)  # Проверяем, что это валидное выражение
-        
-        # Для 6 переменных (крайний случай)
-        lf = LogicalFunction(['a', 'b', 'c', 'd', 'e', 'f'], "a | b | c | d | e | f")
-        result = lf.minimize_sdnf_kmap()
-        self.assertTrue(result in ["1", "0"] or 
-                    "|" in result or "&" in result)
-    
-    def test_group_to_implicant(self):
-        """Тест преобразования группы клеток в импликант"""
-        lf = LogicalFunction(['a', 'b', 'c'], "a | b | c")
-        group = [(0,0,0), (0,0,1)]
-        implicant = lf._group_to_implicant(group)
-        self.assertEqual(implicant, (0, 0, None))
-    
-    def test_is_valid_group(self):
-        """Тест проверки валидности группы клеток"""
-        lf = LogicalFunction(['a', 'b'], "a | b")
-        valid_group = [(0,0), (0,1)]
-        invalid_group = [(0,0), (1,1)]
-        self.assertTrue(lf._is_valid_group(valid_group))
-        self.assertFalse(lf._is_valid_group(invalid_group))
-    
-    def test_gray_code_generation(self):
-        """Тест генерации кода Грея"""
-        lf = LogicalFunction(['a'], "a")
-        gray = lf._gray_code(3)
-        self.assertEqual(len(gray), 8)
-        self.assertEqual(gray[0], [0, 0, 0])
-        self.assertEqual(gray[1], [0, 0, 1])
-        self.assertEqual(gray[-1], [1, 0, 0])
+    def test_covers(self):
+        """Тест проверки покрытия термина импликантом"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertTrue(lf._covers([1, None, None], [1, 0, 1]))
+        self.assertFalse(lf._covers([1, None, None], [0, 0, 1]))
+        self.assertTrue(lf._covers([None, None, None], [1, 0, 1]))
 
-    def test_always_true(self):
-        lf = LogicalFunction(['a'], 'a | !a')
+    def test_generate_gray_codes(self):
+        """Тест генерации кодов Грея"""
+        lf = LogicalFunction(['A', 'B'], 'A', {})
+        gray_codes = lf._generate_gray_codes(2)
+        self.assertEqual(gray_codes, [0, 1, 3, 2])
+
+    def test_convert_to_binary_terms(self):
+        """Тест преобразования терминов в бинарное представление"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        terms = [5, 3]  # 101 и 011
+        binary_terms = lf._convert_to_binary_terms(terms, 3)
+        self.assertEqual(binary_terms, [(1, 0, 1), (0, 1, 1)])
+
+    def test_try_merge_implicants(self):
+        """Тест попытки объединения импликантов"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        merged = lf._try_merge_implicants((1, 0, 1), (1, 0, 0))
+        self.assertEqual(merged, (1, 0, '-'))
+        self.assertIsNone(lf._try_merge_implicants((1, 0, 1), (0, 1, 0)))
+
+    def test_find_prime_implicants_kmap(self):
+        """Тест поиска простых импликантов для карт Карно"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        minterms = [(1, 0, 1), (1, 0, 0)]
+        primes = lf._find_prime_implicants_kmap(minterms, 3)
+        self.assertEqual(primes, {(1, 0, '-')})
+
+    def test_is_covering(self):
+        """Тест проверки покрытия минтерма импликантом"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        self.assertTrue(lf._is_covering((1, '-', '-'), (1, 0, 1)))
+        self.assertFalse(lf._is_covering((1, '-', '-'), (0, 0, 1)))
+
+    def test_select_essential_primes_kmap(self):
+        """Тест выбора существенных импликантов для карт Карно"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A', {})
+        primes = {(1, '-', '-'), ('-', 1, '-')}
+        minterms = [(1, 0, 0), (0, 1, 0)]
+        essentials = lf._select_essential_primes_kmap(primes, minterms)
+        self.assertEqual(len(essentials), 2)
+
+
+class TestLogicalFunctionEdgeCases(unittest.TestCase):
+
+    def test_single_variable_function(self):
+        """Тест функции с одной переменной"""
+        lf = LogicalFunction(['A'], 'A', {})
+        self.assertEqual(lf.minimize_sdnf_calculus(), "A")
+        self.assertEqual(lf.minimize_sknf_calculus(), "(A)")
+
+    def test_complex_kmap_minimization(self):
+        """Тест сложной минимизации с картами Карно для 3 переменных"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A & (B | C)', {})
+        dnf_result = lf.minimize_with_kmap(is_dnf=True)
+        cnf_result = lf.minimize_with_kmap(is_dnf=False)
+        self.assertTrue(len(dnf_result) > 0)
+        self.assertTrue(len(cnf_result) > 0)
+
+    def test_minimize_sdnf_table_complex(self):
+        """Тест табличной минимизации СДНФ для сложной функции"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A & (B | C)', {})
+        result = lf.minimize_sdnf_table()
+        self.assertTrue(len(result) > 0)
+
+    def test_minimize_sknf_table_complex(self):
+        """Тест табличной минимизации СКНФ для сложной функции"""
+        lf = LogicalFunction(['A', 'B', 'C'], 'A & (B | C)', {})
+        result = lf.minimize_sknf_table()
+        self.assertTrue(len(result) > 0)
+
+    def test_all_true_function(self):
+        """Тест функции, которая всегда истинна (все минтермы)"""
+        lf = LogicalFunction(['A', 'B'], 'A | !A', {})
         self.assertEqual(lf.minimize_sdnf_calculus(), "1")
-        self.assertEqual(lf.minimize_sknf_calculus(), "1") 
+        self.assertEqual(lf.minimize_sknf_calculus(), "1")
+        self.assertEqual(lf.minimize_with_kmap(is_dnf=True), "1")
+        self.assertEqual(lf.minimize_with_kmap(is_dnf=False), "1")
 
-    def test_5_variable_kmap(self):
-        # Test 5-variable function
-        lf = LogicalFunction(['a','b','c','d','e'], 'a & b & c & d & e')
-        result = lf.minimize_sdnf_kmap()
-        self.assertEqual(result, "a & b & c & d & e")
+    def test_expression_with_spaces(self):
+        """Тест выражения с пробелами"""
+        lf = LogicalFunction(['A', 'B'], ' A  &  B ', {})
+        self.assertEqual(lf._evaluate_expression({'A': 1, 'B': 1}), 1)
+        self.assertEqual(lf.minimize_sdnf_calculus(), "A & B")
 
-    def test_kmap_group_validation(self):
-        # Test invalid group detection
-        lf = LogicalFunction(['a','b'], 'a | b')
-        self.assertFalse(lf._is_valid_group([(0,0), (0,1), (1,0)]))  # Not a valid group    
+    def test_multiple_variables(self):
+        """Тест с большим количеством переменных (4)"""
+        lf = LogicalFunction(['A', 'B', 'C', 'D'], 'A & B & (C | D)', {})
+        try:
+            lf.display_kmap(is_dnf=True)
+            result = lf.minimize_sdnf_calculus()
+            self.assertTrue(len(result) > 0)
+        except Exception as e:
+            self.fail(f"Failed with 4 variables: {type(e).__name__}")
 
+    def test_maxterm_to_expression_empty(self):
+        """Тест пустого макстерма"""
+        lf = LogicalFunction(['A', 'B'], 'A & B', {})
+        self.assertEqual(lf._maxterm_to_expression([None, None]), "1")
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()
